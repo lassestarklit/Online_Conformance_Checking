@@ -26,7 +26,8 @@ class LSTMController:
         self.err_pr_mil = err_pr_mil
 
 
-        self.X_train = np.empty((0,len(labels)))
+        self.X_train = []
+
         self.X_train_list=[]
         self.y_train_list = []
         self.y_train = np.empty((0,num_target))
@@ -41,23 +42,7 @@ class LSTMController:
 
 
 
-    def recall_m(self,y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-        recall = true_positives / (possible_positives + K.epsilon())
-        return recall
 
-    def precision_m(self,y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-        precision = true_positives / (predicted_positives + K.epsilon())
-        print(precision)
-        return precision
-
-    def f1_m(self,y_true, y_pred):
-        precision = self.precision_m(y_true, y_pred)
-        recall = self.recall_m(y_true, y_pred)
-        return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
 
     def create_model(self):
 
@@ -89,18 +74,26 @@ class LSTMController:
 
     def reset_training_data(self):
         self.X_train_list=[]
-        self.X_train = np.empty((0,len(self.labels)))
+        self.X_train = []
         self.y_train = np.empty((0,self.num_target))
 
 
 
-    def train_model(self,trace):
+    def train_model(self):
         if self.embedding:
-            self.prepare_data_embedding(trace)
-            self.fit_model()
+
+            X_train = pad_sequences(self.X_train)
+            print("embedded", (X_train))
+
         else:
-            self.prepare_data_one_hot(trace)
-            self.fit_model()
+            print("one-hot",self.X_train)
+            print("samples of one-hot",len(self.X_train))
+            print("timesteps of one-hot",len(self.X_train[0]))
+            print(print("features of one-hot",len(self.X_train[0][0])))
+            self.X_train = np.reshape(self.X_train, (len(self.X_train), len(self.X_train[0]), len(self.X_train[0][0])))
+
+
+        #self.fit_model()
 
 
     def fit_model(self):
@@ -115,7 +108,7 @@ class LSTMController:
         This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
         """
 
-        self.reset_training_data()
+
         X_train_list=[]
         for event in trace:
 
@@ -139,7 +132,7 @@ class LSTMController:
             self.y_train = np.vstack((self.y_train,y_train))
 
 
-        self.X_train=np.array(X_train_list)
+        self.X_train.append(X_train_list)
 
 
     def prepare_data_one_hot(self,trace):
@@ -149,19 +142,19 @@ class LSTMController:
         This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
         """
 
-        self.reset_training_data()
+        X_train=[]
         for event in trace:
 
             activity_label = event["concept:name"]
             state_bool = event["concept:state"]
             move_bool = event["concept:move"]
 
-            X_train_list = self.one_hot_encode(activity_label)
-            new_X_train = np.array(X_train_list)
+            event_one_hot = self.one_hot_encode(activity_label)
+            X_train.append(event_one_hot)
 
             #insert row in array for X_train
 
-            self.X_train = np.vstack((self.X_train,new_X_train))
+
 
             # insert row in y train
             target = [0 if state_bool else 1]
@@ -170,8 +163,8 @@ class LSTMController:
             y_train = np.array(target)
 
             self.y_train = np.vstack((self.y_train,y_train))
+        print(self.X_train.append(X_train))
 
-        self.X_train = np.reshape(self.X_train,(self.X_train.shape[0],1,self.X_train.shape[1]))
 
 
     def evaluate(self,cases):
@@ -204,10 +197,12 @@ class LSTMController:
 
                 y_test = np.vstack((y_test,y))
 
-        X_test = pad_sequences(X_test)
+        if self.embedding:
+            X_test = pad_sequences(X_test)
 
         if not self.embedding:
-            X_test=np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+            X_test=np.reshape(X_test, (len(X_test),len(X_test[0]),len(X_test[0][0])))
+        print(X_test)
 
         #yhat = self.model.predict_classes(X_test, verbose=0)
         #print(yhat)

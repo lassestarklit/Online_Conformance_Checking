@@ -25,8 +25,12 @@ def fit_model_from_log(log_path, log_name,csv_name,err_pr_mil,embedding=True,num
         if random<=testcases and len(test_cases)<180:
             test_cases.append(case)
         else:
-            model.train_model(case)
+            if embedding:
+                model.prepare_data_embedding(case)
+            else:
+                model.prepare_data_one_hot(case)
             training_num+=1
+    model.train_model()
 
     print("Number of testcases:", len(test_cases))
     print("Number of training cases:", training_num)
