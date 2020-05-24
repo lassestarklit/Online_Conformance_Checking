@@ -21,6 +21,7 @@ def fit_model_from_log(log_path, log_name,csv_name,err_pr_mil,embedding=True,num
     #20% are testcases
     testcases=20
     for case_index, case in enumerate(log):
+
         random=randint(1,100)
         if random<=testcases and len(test_cases)<180:
             test_cases.append(case)
@@ -82,12 +83,20 @@ if __name__ == '__main__':
     dt_string = current_time.strftime("%d%m%Y_%H%M%S")
     csv_name = 'Results_' + dt_string + '.csv'
     # Lav csv fil
-    with open(csv_name, 'a', newline='') as csvfile:
+    '''with open(csv_name, 'a', newline='') as csvfile:
         fieldnames = ['errors_pr_mil', 'data_processing', 'move/state discriminating', 'accuracy']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        writer.writeheader()
-    for index,file in enumerate(file_names):
+        writer.writeheader()'''
+
+    training_data = ['500']
+    validate = ['80','100','150','200','750']
+    model = LSTMController("JJ", '500', embedding=False, num_target=2)
+    model.create_model()
+
+    model.load_training_logs(path_to_log,['500'])
+    model.train_model()
+    '''for index,file in enumerate(file_names):
         #process_log(path_to_process_model, path_to_log, file + '.xes', file + '_processed.xes')
 
 
@@ -97,5 +106,7 @@ if __name__ == '__main__':
         fit_model_from_log(path_to_log, file + '_processed.xes',csv_name,err_pr_mil=files[index],num_target=2)
         #One-hot
         fit_model_from_log(path_to_log,  file + '_processed.xes',csv_name,err_pr_mil=files[index],embedding=False)
-        fit_model_from_log(path_to_log, file + '_processed.xes', csv_name,err_pr_mil=files[index],embedding=False,num_target=2)
+        fit_model_from_log(path_to_log, file + '_processed.xes', csv_name,err_pr_mil=files[index],embedding=False,num_target=2)'''
+
+
 

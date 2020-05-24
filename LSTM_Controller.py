@@ -11,6 +11,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Embedding
 from keras.layers import LSTM
 from keras.preprocessing.sequence import pad_sequences
+from pm4py.objects.log.importer.xes import factory as xes_importer
 import csv
 
 from keras import backend as K
@@ -25,6 +26,9 @@ class LSTMController:
         self.labels = ['Activity ' + activity for activity in labels]
         self.err_pr_mil = err_pr_mil
 
+
+        self.training_logs={}
+        self.testing_logs = {}
 
         self.X_train = np.empty((0,len(labels)))
         self.X_train_list=[]
@@ -92,15 +96,60 @@ class LSTMController:
         self.X_train = np.empty((0,len(self.labels)))
         self.y_train = np.empty((0,self.num_target))
 
+    def load_training_logs(self,log_path,logs):
 
+        for log_name in logs:
+            self.training_logs[log_name]=xes_importer.import_log(log_path + '/test-' + log_name + "_processed.xes")
 
-    def train_model(self,trace):
+    def load_test_logs(self,log_path,logs):
+        for log_name in logs:
+            self.testing_logs[log_name] = xes_importer.import_log(log_path + '/test-' + log_name + "_processed.xes")
+
+    def train_model(self):
+
+        training_data = np.empty((10,7))
+        for name,log in self.training_logs.items():
+            num=0
+            for trace_index, trace in enumerate(log):
+                self.reset_training_data()
+                for event in trace:
+
+                    activity_label = event["concept:name"]
+                    state_bool = event["concept:state"]
+                    move_bool = event["concept:move"]
+
+                    X_train_list = self.one_hot_encode(activity_label)
+                    new_X_train = np.array(X_train_list)
+
+                    # insert row in array for X_train
+
+                    self.X_train = np.vstack((self.X_train, new_X_train))
+
+                    # insert row in y train
+                    target = [0 if state_bool else 1]
+                    if self.num_target == 2:
+                        target.append(0 if move_bool else 1)
+                    y_train = np.array(target)
+
+                    self.y_train = np.vstack((self.y_train, y_train))
+
+                self.X_train = np.reshape(self.X_train, (self.X_train.shape[0], 1, self.X_train.shape[1]))
+                self.fit_model()
+
+        '''for case_index, case in enumerate(log):
+
+            random = randint(1, 100)
+            if random <= testcases and len(test_cases) < 180:
+                test_cases.append(case)
+            else:
+                model.train_model(case)
         if self.embedding:
             self.prepare_data_embedding(trace)
             self.fit_model()
         else:
             self.prepare_data_one_hot(trace)
-            self.fit_model()
+            self.fit_model()'''
+
 
 
     def fit_model(self):
