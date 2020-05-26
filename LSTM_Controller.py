@@ -19,15 +19,14 @@ from keras import backend as K
 
 class LSTMController:
 
-    def __init__(self, csv_name,err_pr_mil,labels=None,embedding=True,num_target=1):
+    def __init__(self, csv_name,labels=None,embedding=True,num_target=1):
 
         if labels is None:
             labels = ['A', 'H', 'J', 'C', 'I', 'K', 'E', 'F', 'G', 'D', 'B']
         self.labels = ['Activity ' + activity for activity in labels]
-        self.err_pr_mil = err_pr_mil
 
 
-        self.training_logs={}
+        self.training_logs = {}
         self.testing_logs = {}
 
         self.X_train = np.empty((0,len(labels)))
@@ -36,32 +35,11 @@ class LSTMController:
         self.y_train = np.empty((0,num_target))
 
 
+
         self.embedding = embedding
         self.num_target=num_target
 
         self.csv_name=csv_name
-
-
-
-
-
-    def recall_m(self,y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-        recall = true_positives / (possible_positives + K.epsilon())
-        return recall
-
-    def precision_m(self,y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-        precision = true_positives / (predicted_positives + K.epsilon())
-        print(precision)
-        return precision
-
-    def f1_m(self,y_true, y_pred):
-        precision = self.precision_m(y_true, y_pred)
-        recall = self.recall_m(y_true, y_pred)
-        return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
 
     def create_model(self):
 
@@ -105,13 +83,11 @@ class LSTMController:
         for log_name in logs:
             self.testing_logs[log_name] = xes_importer.import_log(log_path + '/test-' + log_name + "_processed.xes")
 
-    def train_model(self):
-
-        training_data = np.empty((10,7))
-        for name,log in self.training_logs.items():
-            num=0
+    def train_model_one_hot(self):
+        for name_of_log, log in self.training_logs.items():
             for trace_index, trace in enumerate(log):
                 self.reset_training_data()
+
                 for event in trace:
 
                     activity_label = event["concept:name"]
@@ -134,148 +110,147 @@ class LSTMController:
                     self.y_train = np.vstack((self.y_train, y_train))
 
                 self.X_train = np.reshape(self.X_train, (self.X_train.shape[0], 1, self.X_train.shape[1]))
+
                 self.fit_model()
 
-        '''for case_index, case in enumerate(log):
+        '''
+        Tried to make bagdes wh: 
+        [[[one-hot-activity-1_1],[one-hot-activity-2_1]...[one-hot-activity-n_1]]
+        [[one-hot-activity-1_2],[one-hot-activity-2_2]...[one-hot-activity-n_2]]
+        ...
+        [[one-hot-activity-1_n],[one-hot-activity-2_n]...[one-hot-activity-n_n]]]
+        training_data = []
+        for name_of_log,log in self.training_logs.items():
+            self.reset_training_data()
+            num = 0
+            for trace_index, trace in enumerate(log):
+                num+=1
+                one_badge = []
+                for event in trace:
+                
+                    activity_label = event["concept:name"]
+                    state_bool = event["concept:state"]
+                    move_bool = event["concept:move"]
 
-            random = randint(1, 100)
-            if random <= testcases and len(test_cases) < 180:
-                test_cases.append(case)
-            else:
-                model.train_model(case)
+                    one_hot_encoded_activity = self.one_hot_encode(activity_label)
+                    one_badge.append(one_hot_encoded_activity)
+
+                print(num)
+                badge_array = np.array(one_badge)
+                self.X_train = np.insert(self.X_train,0, badge_array,1)
+
+            print(self.X_train.shape)'''
+
+    def train_model_embedding(self):
+        """
+        :param data: trace from XES log
+        :return:
+        This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
+        """
+        for name_of_log, log in self.training_logs.items():
+            for trace_index, trace in enumerate(log):
+                self.reset_training_data()
+                X_train_list = []
+                for event in trace:
+
+                    activity_label = event["concept:name"]
+                    state_bool = event["concept:state"]
+                    move_bool = event["concept:move"]
+
+                    # Give value to categorical feature
+                    for index, activity in enumerate(self.labels):
+                        if activity == activity_label:
+                            X_train_list.append(index)
+
+                    # insert row in y train
+                    target = [0 if state_bool else 1]
+                    if self.num_target == 2:
+                        target.append(0 if move_bool else 1)
+                    y_train = np.array(target)
+
+                    self.y_train = np.vstack((self.y_train, y_train))
+
+                self.X_train = np.array(X_train_list)
+                self.fit_model()
+
+    def train_model(self):
+
         if self.embedding:
-            self.prepare_data_embedding(trace)
-            self.fit_model()
+            self.train_model_embedding()
         else:
-            self.prepare_data_one_hot(trace)
-            self.fit_model()'''
-
-
+            self.train_model_one_hot()
 
     def fit_model(self):
 
         # Batch size 1 (Stochastic Gradient Descent) since stream data
+
         self.model.fit(self.X_train, self.y_train,verbose=0)
 
-    def prepare_data_embedding(self, trace):
-        """
-        :param data: trace from XES log
-        :return:
-        This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
-        """
-
-        self.reset_training_data()
-        X_train_list=[]
-        for event in trace:
-
-            activity_label = event["concept:name"]
-            state_bool = event["concept:state"]
-            move_bool = event["concept:move"]
-
-
-            #Give value to categorical feature
-            for index, activity in enumerate(self.labels):
-                if activity == activity_label:
-
-                    X_train_list.append(index)
-
-            #insert row in y train
-            target = [0 if state_bool else 1]
-            if self.num_target==2:
-                target.append(0 if move_bool else 1)
-            y_train = np.array(target)
-
-            self.y_train = np.vstack((self.y_train,y_train))
-
-
-        self.X_train=np.array(X_train_list)
-
-
-    def prepare_data_one_hot(self,trace):
-        """
-        :param data: trace from XES log
-        :return:
-        This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
-        """
-
-        self.reset_training_data()
-        for event in trace:
-
-            activity_label = event["concept:name"]
-            state_bool = event["concept:state"]
-            move_bool = event["concept:move"]
-
-            X_train_list = self.one_hot_encode(activity_label)
-            new_X_train = np.array(X_train_list)
-
-            #insert row in array for X_train
-
-            self.X_train = np.vstack((self.X_train,new_X_train))
-
-            # insert row in y train
-            target = [0 if state_bool else 1]
-            if self.num_target == 2:
-                target.append(0 if move_bool else 1)
-            y_train = np.array(target)
-
-            self.y_train = np.vstack((self.y_train,y_train))
-
-        self.X_train = np.reshape(self.X_train,(self.X_train.shape[0],1,self.X_train.shape[1]))
-
-
-    def evaluate(self,cases):
-
-        X_test = []
-        y_test = np.empty((0, self.num_target))
-
-
-        for case in cases:
-            for event in case:
-                activity_label = event["concept:name"]
-                state_bool = event["concept:state"]
-                move_bool = event["concept:move"]
-
-                if self.embedding:
-                    # Give value to categorical feature
-                    for index, activity in enumerate(self.labels):
-                        if activity == activity_label:
-                            X_test.append([index])
-                else:
-                    X_test_list = self.one_hot_encode(activity_label)
-                    X_test.append(X_test_list)
 
 
 
-                target = [0 if state_bool else 1]
-                if self.num_target == 2:
-                    target.append(0 if move_bool else 1)
-                y = np.array(target)
-
-                y_test = np.vstack((y_test,y))
-
-        X_test = pad_sequences(X_test)
-
-        if not self.embedding:
-            X_test=np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
-
-        #yhat = self.model.predict_classes(X_test, verbose=0)
-        #print(yhat)
-        # evaluate the model
-        loss, accuracy = self.model.evaluate(X_test, y_test, verbose=0)
-
-        print("___Embedding___" if self.embedding else "___One hot___")
-        print("___Move/State discriminating___" if self.num_target==2 else "____Non discriminating___")
-        print('Test loss:', loss)
-        print('Test accuracy:', accuracy)
-        print('\n')
 
 
-        move_state_discriminating = True if self.num_target == 2 else False
-        categorical_data = "Embedded" if self.embedding else "One hot encoding"
-        csv_row=[self.err_pr_mil, categorical_data,move_state_discriminating,accuracy]
-        with open(self.csv_name, 'a',newline='\n') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(csv_row)
+    def evaluate(self):
+        for name_of_log, log in self.testing_logs.items():
+            print(name_of_log)
+            X_test = []
+            y_test = np.empty((0, self.num_target))
+
+
+            for case in log:
+                for event in case:
+                    activity_label = event["concept:name"]
+                    state_bool = event["concept:state"]
+                    move_bool = event["concept:move"]
+
+                    if self.embedding:
+                        # Give value to categorical feature
+                        for index, activity in enumerate(self.labels):
+                            if activity == activity_label:
+                                X_test.append([index])
+                    else:
+                        X_test_list = self.one_hot_encode(activity_label)
+                        X_test.append(X_test_list)
+
+
+
+                    target = [0 if state_bool else 1]
+                    if self.num_target == 2:
+                        target.append(0 if move_bool else 1)
+                    y = np.array(target)
+
+                    y_test = np.vstack((y_test,y))
+
+            X_test = pad_sequences(X_test)
+
+            if not self.embedding:
+                X_test=np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+
+            #yhat = self.model.predict_classes(X_test, verbose=0)
+            #print(yhat)
+            # evaluate the model
+            loss, accuracy = self.model.evaluate(X_test, y_test, verbose=0)
+
+            # make a prediction
+            '''ynew = self.model.predict(X_test)
+            # show the inputs and predicted outputs
+            for i in range(len(y_test)):
+                print("y_true=%s, y_Predicted=%s" % (y_test[i], ynew[i]))'''
+
+            print("___Embedding___" if self.embedding else "___One hot___")
+            print("___Move/State discriminating___" if self.num_target==2 else "____Non discriminating___")
+            print('Test loss:', loss)
+            print('Test accuracy:', accuracy)
+            print('\n')
+
+
+            move_state_discriminating = True if self.num_target == 2 else False
+            categorical_data = "Embedded" if self.embedding else "One hot encoding"
+            csv_row=[name_of_log, categorical_data,move_state_discriminating,accuracy]
+            with open(self.csv_name, 'a',newline='\n') as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow(csv_row)
 
 
 
