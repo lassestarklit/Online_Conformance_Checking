@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<log>
+  <string key="concept:name" value="tmp-process"/>
+  <extension name="Organizational" prefix="org" uri="http://www.xes-standard.org/org.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Lifecycle" prefix="lifecycle" uri="http://www.xes-standard.org/lifecycle.xesext"/>
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <trace>
+    <string key="concept:name" value="case_3021"/>
+    <event>
+      <string key="concept:name" value="Activity A"/>
+      <date key="time:timestamp" value="1970-01-01T01:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity C"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity J"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity H"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity F"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity F"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="false"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity K"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity I"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity D"/>
+      <date key="time:timestamp" value="1970-01-01T04:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity B"/>
+      <date key="time:timestamp" value="1970-01-01T05:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+  </trace>
+  <trace>
+    <string key="concept:name" value="case_3021"/>
+    <event>
+      <string key="concept:name" value="Activity A"/>
+      <date key="time:timestamp" value="1970-01-01T01:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity C"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity J"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity H"/>
+      <date key="time:timestamp" value="1970-01-01T02:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity F"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity F"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="false"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity K"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity I"/>
+      <date key="time:timestamp" value="1970-01-01T03:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity D"/>
+      <date key="time:timestamp" value="1970-01-01T04:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+    <event>
+      <string key="concept:name" value="Activity B"/>
+      <date key="time:timestamp" value="1970-01-01T05:00:00.000+01:00"/>
+      <boolean key="concept:legal" value="true"/>
+    </event>
+  </trace>
+</log>
