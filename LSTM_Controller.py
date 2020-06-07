@@ -44,17 +44,11 @@ class LSTMController:
         self.freq_one_hot = [0 for i in range(len(self.labels))]
 
     def create_model(self):
-
         # create the model
-
         self.model = Sequential()
-        self.model.add(LSTM(100))
-
+        self.model.add(LSTM(120,activation='sigmoid'))
         self.model.add(Dense(self.longest_trace, activation='sigmoid'))
         self.model.compile(loss=self.loss_function, optimizer='adam', metrics=['accuracy',metrics.AUC()])
-
-
-
 
     def one_hot_encode(self, input_activity):
         """

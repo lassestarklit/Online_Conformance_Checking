@@ -39,6 +39,7 @@ def run_lstm(csv_name,path_to_log,logs):
 
 
 if __name__ == '__main__':
+    feature_process='One hot encoding'
 
     path_to_process_model = r'process models/process_model.pnml'
     path_to_log = r'logs/'
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     current_time = datetime.now()
     dt_string = current_time.strftime("%d%m%Y_%H%M%S")
 
-    csv_name = 'results/Results_' + dt_string + '.csv'
+    csv_name = 'results/'+ feature_process + '_' + dt_string + '.csv'
     # Lav csv fil
     with open(csv_name, 'a', newline='') as csvfile:
 
