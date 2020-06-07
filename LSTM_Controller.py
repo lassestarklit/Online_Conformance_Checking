@@ -24,12 +24,11 @@ class LSTMController:
             labels = ['A', 'H', 'J', 'C', 'I', 'K', 'E', 'F', 'G', 'D', 'B']
         self.labels = ['Activity ' + activity for activity in labels]
 
+        self.training_traces = []
+        self.testing_traces = []
+        self.validation_traces = []
 
-        self.training_logs = {}
-        self.testing_logs = {}
-
-        self.X_train = np.empty((0,len(labels)))
-        self.y_train = np.empty((0,num_target))
+        self.longest_trace = 0
 
         self.feature_process = feature_process
 
@@ -41,24 +40,15 @@ class LSTMController:
     def create_model(self):
 
         # create the model
-        # For a single-input model with 2 classes (binary classification):
-        '''Embedding Layer: Here we specify the embedding size for our categorical variable.
-        I have used 3 in this case, if we were to increase this it will capture more details on the relationship between the categorical variables. Jeremy Howard suggests the following solution for choosing embedding sizes:
-        # m is the no of categories per feature
-        embedding_size = min(50, m+1/ 2)
-        https://towardsdatascience.com/deep-embeddings-for-categorical-variables-cat2vec-b05c8ab63ac0'''
 
-        embedding_size = 6
-        no_features = len(self.labels)
         self.model = Sequential()
-        #If data processing is embedding we need an extra layer
-        if self.feature_process == "Embedding":
-
-            self.model.add(Embedding(input_dim=no_features, output_dim=embedding_size, input_length=1))
-
         self.model.add(LSTM(100))
-        self.model.add(Dense(self.num_target, activation='sigmoid'))
+
+        self.model.add(Dense(self.longest_trace, activation='sigmoid'))
         self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        #binary_crossentropy
+        #MSE
+
 
     def one_hot_encode(self, input_activity):
         """
@@ -73,186 +63,124 @@ class LSTMController:
             self.freq_one_hot = one_hot_encoded
         return one_hot_encoded
 
-    def reset_training_data(self):
-        self.X_train = np.empty((0,len(self.labels)))
-        self.y_train = np.empty((0,self.num_target))
-        self.reset_freq_one_hot()
+    def load_split_logs(self,log_path,logs):
 
-    def reset_freq_one_hot(self):
-        self.freq_one_hot = [0 for i in range(len(self.labels))]
+        training_perc=80
+        #test_perc=training_perc-80
+        validation_perc=20
 
-    def load_training_logs(self,log_path,logs):
+        temp_training_set=[]
+        for log_file in logs:
+            log=xes_importer.import_log(log_path + '/test-' + log_file + "_processed.xes")
 
-        for log_name in logs:
-            self.training_logs[log_name]=xes_importer.import_log(log_path + '/test-' + log_name + "_processed.xes")
+            training_size = len(log) * training_perc / 100
+            counter = 0
 
-    def load_test_logs(self,log_path,logs):
-        for log_name in logs:
-            self.testing_logs[log_name] = xes_importer.import_log(log_path + '/test-' + log_name + "_processed.xes")
+            for trace in log:
+                #find longest trace
+                if len(trace) > self.longest_trace:
+                    self.longest_trace = len(trace)
+                if counter < training_size:
+                    temp_training_set.append(trace)
+                else:
+                    self.testing_traces.append(trace)
+                counter += 1
 
-    def train_model_one_hot(self):
-        for name_of_log, log in self.training_logs.items():
-            for trace_index, trace in enumerate(log):
-                self.reset_training_data()
+            validation_size = int(len(temp_training_set) * validation_perc / 100)
+            self.validation_traces.extend(temp_training_set[(-1 * validation_size):])
+            self.training_traces.extend(temp_training_set[:(len(temp_training_set)-validation_size)])
 
-                for event in trace:
+            counter +=1
 
-                    activity_label = event["concept:name"]
-                    state_bool = event["concept:state"]
-                    move_bool = event["concept:move"]
+        self.pad_traces()
 
-                    X_train_list = self.one_hot_encode(activity_label)
-                    new_X_train = np.array(X_train_list)
+    def pad_traces(self):
+        """Inserts padding traces to match longest trace in log"""
+        pad_str = {'concept:name': 'NA', 'concept:state': True, 'concept:move': True}
 
-                    # insert row in array for X_train
 
-                    self.X_train = np.vstack((self.X_train, new_X_train))
 
-                    # insert row in y train
-                    target = [0 if state_bool else 1]
-                    if self.num_target == 2:
-                        target.append(0 if move_bool else 1)
-                    y_train = np.array(target)
+        sets=[self.training_traces,self.testing_traces,self.validation_traces]
+        for data_set in sets:
+            for trace in data_set:
+                for i in range(self.longest_trace-len(trace)):
+                    trace.insert(0,pad_str)
 
-                    self.y_train = np.vstack((self.y_train, y_train))
 
-                self.X_train = np.reshape(self.X_train, (self.X_train.shape[0], 1, self.X_train.shape[1]))
-                self.fit_model()
+    def prepare_data(self,data_set):
+        #transform and reshape training_data
+        X,y = self.transform_data(data_set)
 
-        '''
-        Tried to make bagdes wh: 
-        [[[one-hot-activity-1_1],[one-hot-activity-2_1]...[one-hot-activity-n_1]]
-        [[one-hot-activity-1_2],[one-hot-activity-2_2]...[one-hot-activity-n_2]]
-        ...
-        [[one-hot-activity-1_n],[one-hot-activity-2_n]...[one-hot-activity-n_n]]]
-        training_data = []
-        for name_of_log,log in self.training_logs.items():
-            self.reset_training_data()
-            num = 0
-            for trace_index, trace in enumerate(log):
-                num+=1
-                one_badge = []
-                for event in trace:
-                
-                    activity_label = event["concept:name"]
-                    state_bool = event["concept:state"]
-                    move_bool = event["concept:move"]
+        X = np.reshape(X, (len(data_set), len(data_set[0]), len(self.labels)))
+        y = pad_sequences(y)
 
-                    one_hot_encoded_activity = self.one_hot_encode(activity_label)
-                    one_badge.append(one_hot_encoded_activity)
 
-                print(num)
-                badge_array = np.array(one_badge)
-                self.X_train = np.insert(self.X_train,0, badge_array,1)
 
-            print(self.X_train.shape)'''
+        return X,y
 
-    def train_model_embedding(self):
-        """
-        :param data: trace from XES log
-        :return:
-        This function takes a trace as input and defines an event as an array and defines X_train as array of arrays
-        """
-        for name_of_log, log in self.training_logs.items():
-            for trace_index, trace in enumerate(log):
-                self.reset_training_data()
-                X_train_list = []
-                for event in trace:
+    def transform_data(self,data_set):
+        X = []
+        y =[]
+        for trace in data_set:
+            trace_activity = []
+            trace_target = []
+            for event in trace:
+                activity_label = event["concept:name"]
+                state_bool = event["concept:state"]
+                move_bool = event["concept:move"]
 
-                    activity_label = event["concept:name"]
-                    state_bool = event["concept:state"]
-                    move_bool = event["concept:move"]
+                # insert event in trace sequence
+                encoded = self.one_hot_encode(activity_label)
+                trace_activity.append(encoded)
 
-                    # Give value to categorical feature
-                    for index, activity in enumerate(self.labels):
-                        if activity == activity_label:
-                            X_train_list.append(index)
+                # insert target in trace sequence
 
-                    # insert row in y train
-                    target = [0 if state_bool else 1]
-                    if self.num_target == 2:
-                        target.append(0 if move_bool else 1)
-                    y_train = np.array(target)
+                target = 1 if state_bool else 0
+                if self.num_target == 2:
+                    target = [target,1 if move_bool else 0]
 
-                    self.y_train = np.vstack((self.y_train, y_train))
+                trace_target.append(target)
 
-                self.X_train = np.array(X_train_list)
 
-                self.fit_model()
+            X.append(trace_activity)
+            y.append(trace_target)
+
+
+
+        return X,y
+
+
 
     def train_model(self):
+        X,y = self.prepare_data(self.training_traces)
 
-        if self.feature_process == "Embedding":
-            self.train_model_embedding()
-        else:
-            self.train_model_one_hot()
-
-    def fit_model(self):
-
-        # Batch size 1 (Stochastic Gradient Descent) since stream data
-        self.model.fit(self.X_train, self.y_train,verbose=0)
+        self.model.fit(X, y,verbose=0)
 
 
     def evaluate(self):
-        #Not working currently. It evaluates all traces in a log as a full trace.
+        X_test, y_test = self.prepare_data(self.testing_traces)
+        # evaluate the model
+        loss, accuracy = self.model.evaluate(X_test, y_test, verbose=0)
 
-        for name_of_log, log in self.testing_logs.items():
-            print(name_of_log)
-            X_test = []
-            y_test = np.empty((0, self.num_target))
+        # make prediction
+        '''ynew = self.model.predict(X_test)
+        # show the inputs and predicted outputs
+        for i in range(len(y_test)):
+            print("y_true=%s, y_Predicted=%s" % (y_test[i], ynew[i]))'''
 
-            self.reset_freq_one_hot()
-            for case in log:
-
-                for event in case:
-                    activity_label = event["concept:name"]
-                    state_bool = event["concept:state"]
-                    move_bool = event["concept:move"]
-
-                    if self.feature_process == "Embedding":
-                        # Give value to categorical feature
-                        for index, activity in enumerate(self.labels):
-                            if activity == activity_label:
-                                X_test.append([index])
-                    else:
-                        X_test_list = self.one_hot_encode(activity_label)
-                        X_test.append(X_test_list)
-
-                    target = [0 if state_bool else 1]
-                    if self.num_target == 2:
-                        target.append(0 if move_bool else 1)
-                    y = np.array(target)
-
-                    y_test = np.vstack((y_test,y))
-
-            X_test = pad_sequences(X_test)
+        print(self.feature_process)
+        print("___Move/State discriminating___" if self.num_target==2 else "____Non discriminating___")
+        print('Test loss:', loss)
+        print('Test accuracy:', accuracy)
+        print('\n')
 
 
-            if self.feature_process != "Embedding":
-                X_test=np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
+        '''move_state_discriminating = True if self.num_target == 2 else False
 
-            # evaluate the model
-            loss, accuracy = self.model.evaluate(X_test, y_test, verbose=0)
-
-            # make prediction
-            '''ynew = self.model.predict(X_test)
-            # show the inputs and predicted outputs
-            for i in range(len(y_test)):
-                print("y_true=%s, y_Predicted=%s" % (y_test[i], ynew[i]))'''
-
-            print(self.feature_process)
-            print("___Move/State discriminating___" if self.num_target==2 else "____Non discriminating___")
-            print('Test loss:', loss)
-            print('Test accuracy:', accuracy)
-            print('\n')
-
-
-            move_state_discriminating = True if self.num_target == 2 else False
-
-            csv_row=[name_of_log, self.feature_process,move_state_discriminating,accuracy]
-            with open(self.csv_name, 'a',newline='\n') as csv_file:
-                writer = csv.writer(csv_file)
-                writer.writerow(csv_row)
+        csv_row=[name_of_log, self.feature_process,move_state_discriminating,accuracy]
+        with open(self.csv_name, 'a',newline='\n') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(csv_row)'''
 
 
 

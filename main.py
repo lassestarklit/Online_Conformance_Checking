@@ -24,9 +24,16 @@ def run_lstm(csv_name,path_to_log,training_logs,testing_logs):
     :param testing_logs: list of names of logs
     :return:
     """
+    model = LSTMController(csv_name, feature_process='One hot encoding', num_target=1)
+
+    model.load_split_logs(path_to_log, training_logs)
+
+    model.create_model()
+    model.train_model()
+    model.evaluate()
 
     #Create a model for each fault type (1=faulty move and state combined, 2 is discriminating those)
-    num_targets=[1,2]
+    '''num_targets=[1,2]
     feature_process = ["Embedding","One hot encoding", "Freq one hot encoding"]
     for target in num_targets:
         for model_type in feature_process:
@@ -34,9 +41,9 @@ def run_lstm(csv_name,path_to_log,training_logs,testing_logs):
             model = LSTMController(csv_name, feature_process=model_type, num_target=target)
             model.create_model()
             model.load_training_logs(path_to_log, training_logs)
-            model.load_test_logs(path_to_log, testing_logs)
-            model.train_model()
-            model.evaluate()
+            #model.load_test_logs(path_to_log, testing_logs)
+            #model.train_model()
+            #model.evaluate()'''
 
 
 if __name__ == '__main__':
