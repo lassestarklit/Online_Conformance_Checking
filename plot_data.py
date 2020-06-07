@@ -1,29 +1,40 @@
 import pandas as pd
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import numpy as np
 
-def plot(path_to_csv,training_data,testing_data):
+def plot(path_to_csv):
     df = pd.read_csv(path_to_csv)
 
 
 
     fig = plt.figure()
-    data_processing=['Embedded','One hot encoding','Freq one hot encoding']
-    with_faulty = [True,False]
 
-    for proc in data_processing:
-        for faulty in with_faulty:
+    loss_functions = ['binary_crossentropy','MSE','categorical_crossentropy']
+    dif_logs = [['500'], ['500', '100'], ['500', '750'], ['80'], ['150', '750']]
 
-            newdf=df.loc[(df["data_processing"]==proc) & (df["move/state discriminating"]==faulty)]
-            plt.plot(newdf['errors_pr_mil'], newdf['accuracy'],marker='o',
-                     label= '{0}(with faulty)'.format(proc) if faulty
-                     else '{0}(no faulty)'.format(proc))
+    x=np.arange(len(dif_logs))
+    width = 0.35
+
+    fig,ax = plt.subplots()
+
+    offset=[x - width / 3, x, x + width / 3 ]
+    for index,loss in enumerate(loss_functions):
+        new_df = df.loc[(df["loss function"] == loss)]
+        performance=new_df['AUC']
+        ax.bar(offset[index], performance, width/3,label=loss)
+
+
+    ax.set_ylabel('AUC')
+    ax.set_xticks(x)
+    ax.set_xticklabels(dif_logs)
+    ax.legend()
 
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05))
-    plt.title("Trained on: {0}\nTested on: {1}".format(training_data,testing_data))
     graph_name = path_to_csv[:-4]
+    fig.tight_layout()
 
     plt.savefig(graph_name + "_graph", bbox_inches='tight')
 
-    #plt.show()
+    plt.show()
 

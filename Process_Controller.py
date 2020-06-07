@@ -119,7 +119,7 @@ class ProcessController:
 
         for trace_no, trace_alignment in enumerate(alignments):
 
-            #print("--- new sequence: {0} ---".format(trace_no))
+
             state = True
             event_pointer = 0
             for trace in trace_alignment["alignment"]:
@@ -128,18 +128,18 @@ class ProcessController:
                     self.log[trace_no][event_pointer]["concept:state"] = state
                     self.log[trace_no][event_pointer]["concept:move"] = True
 
-                    #print(trace[0] + ", " + ("correct-move, correct-state, {0}".format(event_pointer) if state else "correct-move, faulty-state, {0}".format(event_pointer)))
+
                     event_pointer += 1
                 else:
                     if (trace[0] != None and trace[0] != ">>"):
                         state = False
                         self.log[trace_no][event_pointer]["concept:state"] = state
                         self.log[trace_no][event_pointer]["concept:move"] = False
-                        #print(trace[0], "faulty-move: Move on log, faulty-state, {0}".format(event_pointer))
+
 
                         event_pointer += 1
                     elif (trace[1] != None and trace[1] != ">>"):
-                        #print(trace[1], "faulty-move: Move on model, faulty-state")
+
                         state = False
 
 
