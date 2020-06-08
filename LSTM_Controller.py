@@ -48,7 +48,7 @@ class LSTMController:
         self.model = Sequential()
         self.model.add(LSTM(120,activation='sigmoid'))
         self.model.add(Dense(self.longest_trace, activation='sigmoid'))
-        self.model.compile(loss=self.loss_function, optimizer='adam', metrics=['accuracy',metrics.AUC()])
+        self.model.compile(loss=self.loss_function, optimizer='adam', metrics=['accuracy',metrics.AUC(),metrics.Precision(),metrics.Recall()])
 
     def one_hot_encode(self, input_activity):
         """
@@ -65,7 +65,7 @@ class LSTMController:
 
     def load_split_logs(self,log_path,logs):
         self.logs = logs
-        training_perc=80
+        training_perc = 80
 
         for log_file in logs:
             log=xes_importer.import_log(log_path + '/test-' + log_file + "_processed.xes")
@@ -101,8 +101,13 @@ class LSTMController:
         #transforming dta
         X,y = self.transform_data(data_set)
         #reshaping data
+
         X = np.reshape(X, (len(data_set), len(data_set[0]), len(self.labels)))
+
+
+
         y = pad_sequences(y)
+        #print(y.shape)
 
         return X,y
 
@@ -145,9 +150,9 @@ class LSTMController:
         X_test, y_test = self.prepare_data(self.testing_traces)
 
         # evaluate the model
-        loss, accuracy,AUC = self.model.evaluate(X_test, y_test, verbose=0)
+        loss, accuracy, AUC,precision,recall = self.model.evaluate(X_test, y_test, verbose=0)
 
-
+        f1 = 2*precision*recall/(precision+recall)
         ''''# make prediction
         ynew = self.model.predict(X_test)
         # show the inputs and predicted outputs
@@ -159,12 +164,13 @@ class LSTMController:
         print('Test loss:', loss)
         print('Test accuracy:', accuracy)
         print('Test AUC:', AUC)
+        print('Test F1:', f1)
         print('\n')
 
 
         move_state_discriminating = True if self.num_target == 2 else False
 
-        csv_row=[self.logs, self.loss_function,move_state_discriminating,accuracy,AUC]
+        csv_row=[self.logs, self.loss_function,move_state_discriminating,accuracy,AUC,f1]
         with open(self.csv_name, 'a',newline='\n') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(csv_row)

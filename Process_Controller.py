@@ -127,8 +127,6 @@ class ProcessController:
 
                     self.log[trace_no][event_pointer]["concept:state"] = state
                     self.log[trace_no][event_pointer]["concept:move"] = True
-
-
                     event_pointer += 1
                 else:
                     if (trace[0] != None and trace[0] != ">>"):

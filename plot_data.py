@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot(path_to_csv):
+def plot(path_to_csv,logs,performance_metric_to_plot):
     df = pd.read_csv(path_to_csv)
 
 
@@ -11,7 +11,7 @@ def plot(path_to_csv):
     fig = plt.figure()
 
     loss_functions = ['binary_crossentropy','MSE','categorical_crossentropy']
-    dif_logs = [['500'], ['500', '100'], ['500', '750'], ['80'], ['150', '750']]
+    dif_logs = logs
 
     x=np.arange(len(dif_logs))
     width = 0.35
@@ -21,11 +21,11 @@ def plot(path_to_csv):
     offset=[x - width / 3, x, x + width / 3 ]
     for index,loss in enumerate(loss_functions):
         new_df = df.loc[(df["loss function"] == loss)]
-        performance=new_df['AUC']
+        performance=new_df[performance_metric_to_plot]
         ax.bar(offset[index], performance, width/3,label=loss)
 
 
-    ax.set_ylabel('AUC')
+    ax.set_ylabel(performance_metric_to_plot)
     ax.set_xticks(x)
     ax.set_xticklabels(dif_logs)
     ax.legend()

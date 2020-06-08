@@ -17,7 +17,7 @@ def process_log(process_model, log_path, log_name, new_log_name):
     process_controller.process_log(log_path + '/' + new_log_name)
 
 
-def run_lstm(csv_name,path_to_log,logs):
+def run_lstm(csv_name,path_to_log,logs,feature_process):
     """
 
     :param csv_name:
@@ -27,8 +27,9 @@ def run_lstm(csv_name,path_to_log,logs):
     """
 
     loss_functions = ['binary_crossentropy','MSE','categorical_crossentropy']
+
     for loss in loss_functions:
-        model = LSTMController(csv_name, feature_process='Freq one hot encoding', loss_function=loss, num_target=1)
+        model = LSTMController(csv_name, feature_process=feature_process, loss_function=loss, num_target=1)
         model.load_split_logs(path_to_log, logs)
         model.create_model()
         model.train_model()
@@ -40,6 +41,7 @@ def run_lstm(csv_name,path_to_log,logs):
 
 if __name__ == '__main__':
     feature_process='One hot encoding'
+    performance_metric_to_plot = "AUC"
 
     path_to_process_model = r'process models/process_model.pnml'
     path_to_log = r'logs/'
@@ -59,17 +61,17 @@ if __name__ == '__main__':
     # Lav csv fil
     with open(csv_name, 'a', newline='') as csvfile:
 
-        fieldnames = ['errors_pr_mil', 'loss function', 'move/state discriminating', 'accuracy','AUC']
+        fieldnames = ['errors_pr_mil', 'loss function', 'move/state discriminating', 'accuracy','AUC',"F1"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
 
 
     #run LSTM
-    dif_logs = [['500'],['500','100'],['500','750'],['80'],['150','750']]
+    dif_logs = [['80'],['100'],['150'],['200'],['500'],['750']]
     for logs in dif_logs:
-        run_lstm(csv_name,path_to_log,logs)
+        run_lstm(csv_name,path_to_log,logs,feature_process)
 
-    plot(csv_name)
+    plot(csv_name,dif_logs,performance_metric_to_plot)
 
 
