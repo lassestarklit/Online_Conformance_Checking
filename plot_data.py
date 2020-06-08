@@ -6,8 +6,6 @@ import numpy as np
 def plot(path_to_csv,logs,performance_metric_to_plot):
     df = pd.read_csv(path_to_csv)
 
-
-
     fig = plt.figure()
 
     loss_functions = ['binary_crossentropy','MSE','categorical_crossentropy']
@@ -34,7 +32,7 @@ def plot(path_to_csv,logs,performance_metric_to_plot):
     graph_name = path_to_csv[:-4]
     fig.tight_layout()
 
-    plt.savefig(graph_name + "_graph", bbox_inches='tight')
+    plt.savefig(graph_name + '_' + performance_metric_to_plot + '_graph', bbox_inches='tight')
 
     plt.show()
 
