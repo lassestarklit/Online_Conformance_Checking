@@ -12,7 +12,6 @@ from plot_data import plot
 
 def process_log(process_model, log_path, log_name, new_log_name):
     process_controller = ProcessController(process_model)
-    log = xes_importer.import_log(log_path + '/' + log_name)
     process_controller.load_log(log_path + '/' + log_name)
     process_controller.process_log(log_path + '/' + new_log_name)
 
@@ -40,14 +39,10 @@ def run_lstm(csv_name,path_to_log,logs):
 
 if __name__ == '__main__':
 
-
-
-
-
+    # Process data logs
     path_to_process_model = r'process models/process_model.pnml'
     path_to_log = r'logs/'
 
-    #Process data logs
     '''files=['80','100','150','200','500','750']
     file_names = ['test-' + activity for activity in files]
 
@@ -58,13 +53,9 @@ if __name__ == '__main__':
     current_time = datetime.now()
     dt_string = current_time.strftime("%d%m%Y_%H%M%S")
 
-
-
-    # feature_process='One hot encoding'
     csv_name = 'results/' + dt_string + '.csv'
-    # Lav csv fil
+    # Give attribute labels
     with open(csv_name, 'a', newline='') as csvfile:
-
         fieldnames = ['errors_pr_mil', 'feature process', 'move/state discriminating', 'Accuracy','AUC',"F1"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
