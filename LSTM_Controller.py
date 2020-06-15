@@ -1,17 +1,11 @@
 # Ignore  the warnings
 import warnings
-
-
-
-
 warnings.filterwarnings('always')
 warnings.filterwarnings('ignore')
-
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Dense, Embedding,LSTM
+from keras.layers import Dense,LSTM
 from keras import metrics
-from keras.preprocessing.sequence import pad_sequences
 from pm4py.objects.log.importer.xes import factory as xes_importer
 import csv
 
@@ -45,11 +39,18 @@ class LSTMController:
     def reset_freq_encoding(self):
         self.freq_one_hot = [0 for i in range(len(self.labels))]
 
-    def create_model(self):
+    def create_model(self,activation_function,alpha):
         # create the model
+        self.activation_function=activation_function
+
         self.model = Sequential()
-        self.model.add(LSTM(120,activation='sigmoid'))
-        self.model.add(Dense(1, activation='sigmoid'))
+
+        self.alpha = alpha
+        hidden_nodes = int(len(self.training_traces)/(alpha*(len(self.labels)+self.num_target)))
+        self.hidden_nodes = hidden_nodes
+
+        self.model.add(LSTM(hidden_nodes))
+        self.model.add(Dense(1,activation=activation_function))
         self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy',metrics.AUC(),metrics.Precision(),metrics.Recall()])
 
     def one_hot_encode(self, input_activity):
@@ -88,11 +89,6 @@ class LSTMController:
 
 
                 counter += 1
-
-
-
-
-
 
 
         self.longest_partial_trace = max(len(max(self.training_traces, key=len)),len(max(self.testing_traces, key=len)))
@@ -163,7 +159,6 @@ class LSTMController:
     def train_model(self):
 
         X,y = self.prepare_data(self.training_traces,self.training_targets)
-
         self.model.fit(X, y,verbose=0)
 
     def evaluate(self):
@@ -173,8 +168,11 @@ class LSTMController:
         loss, accuracy, AUC,precision,recall = self.model.evaluate(X_test, y_test, verbose=0)
         try:
             f1 = 2*precision*recall/(precision+recall)
+
         except ZeroDivisionError:
             f1=0
+
+
         # make prediction
         '''ynew = self.model.predict(X_test)
         # show the inputs and predicted outputs
@@ -192,9 +190,8 @@ class LSTMController:
         print('\n')
 
 
-        move_state_discriminating = True if self.num_target == 2 else False
 
-        csv_row=[self.logs,self.feature_process,move_state_discriminating,accuracy,AUC,f1]
+        csv_row=[self.logs,self.feature_process,self.hidden_nodes,self.alpha,self.activation_function,accuracy,AUC,f1]
         with open(self.csv_name, 'a',newline='\n') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(csv_row)

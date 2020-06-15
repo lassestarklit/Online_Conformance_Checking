@@ -8,6 +8,7 @@ from pm4py.objects.log.importer.xes import factory as xes_importer
 import csv
 from datetime import datetime
 from plot_data import plot
+from plot_activation_nodes import plot_activation_hidden
 
 
 def process_log(process_model, log_path, log_name, new_log_name):
@@ -26,12 +27,16 @@ def run_lstm(csv_name,path_to_log,logs):
     """
 
     feature_process = ['One hot encoding', 'Freq one hot encoding']
-    for process in feature_process:
-        model = LSTMController(csv_name, feature_process=process, num_target=1)
-        model.load_split_logs(path_to_log, logs)
-        model.create_model()
-        model.train_model()
-        model.evaluate()
+    activation_functions = ['softmax', 'sigmoid']
+    factor_hidden_nodes=[1,2,5,10,13]
+    for feature in feature_process:
+        for activation in activation_functions:
+            for hidden in factor_hidden_nodes:
+                model = LSTMController(csv_name, feature_process=feature, num_target=1)
+                model.load_split_logs(path_to_log, logs)
+                model.create_model(activation,hidden)
+                model.train_model()
+                model.evaluate()
 
 
 
@@ -56,7 +61,7 @@ if __name__ == '__main__':
     csv_name = 'results/' + dt_string + '.csv'
     # Give attribute labels
     with open(csv_name, 'a', newline='') as csvfile:
-        fieldnames = ['errors_pr_mil', 'feature process', 'move/state discriminating', 'Accuracy','AUC',"F1"]
+        fieldnames = ['errors_pr_mil', 'feature process', 'hidden neurons','alpha','activation function', 'Accuracy','AUC',"F1"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         writer.writeheader()
@@ -65,13 +70,17 @@ if __name__ == '__main__':
     #run LSTM
     #Define which logs the model is trained on. Can add multiple in one list like: ['80','500']
     dif_logs = [['80'],['100'],['150'],['200'],['500'],['750']]
+    #dif_logs=[['80','500','200'],['100','80','500','750'],['80','100','150','200'],['80','100','150','200','500','750'],['500'],['200','500','750']]
+
+
     for logs in dif_logs:
         run_lstm(csv_name,path_to_log,logs)
-
 
     performance_metrics_to_plot = ["AUC","F1","Accuracy"]
     for metric in performance_metrics_to_plot:
         plot(csv_name, dif_logs, metric)
+
+    plot_activation_hidden(csv_name,'One hot encoding')
 
 
 

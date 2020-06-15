@@ -4,9 +4,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot(path_to_csv,logs,performance_metric_to_plot):
-    feature_process = ['One hot encoding', 'Freq one hot encoding']
-    df = pd.read_csv(path_to_csv)
 
+    df = pd.read_csv(path_to_csv)
+    #alpha 2 and sigmoid activation function
+    df = df.loc[(df["alpha"] == 2) &  (df["activation function"] == 'sigmoid')]
+
+
+    #Choose results from 500 log
+    #df = df.loc[(df['errors_pr_mil'] == "['500']")]
+
+    feature_process = df['feature process'].unique()
     fig = plt.figure()
 
 
@@ -17,11 +24,12 @@ def plot(path_to_csv,logs,performance_metric_to_plot):
 
     fig,ax = plt.subplots()
 
-    offset=[x - width / 2, x + width / 2 ]
+
     for index,feature in enumerate(feature_process):
         new_df = df.loc[(df["feature process"] == feature)]
         performance=new_df[performance_metric_to_plot]
         ax.bar(x + (-1)**index * width / 2, performance, width/2,label=feature)
+
 
 
     ax.set_ylabel(performance_metric_to_plot)

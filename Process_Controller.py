@@ -1,7 +1,4 @@
-from pm4py.objects.petri import petrinet
 from pm4py.objects.petri.importer import pnml as pnml_importer
-from pm4py.visualization.petrinet import factory as pn_vis_factory
-from pm4py.objects.petri import semantics
 from pm4py.algo.conformance.alignments import factory as align_factory
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.log.exporter.xes import factory as xes_exporter
